@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import json
 import errno
@@ -13,6 +14,7 @@ from zipfile import ZipFile
 from contextlib import contextmanager
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import common
 logger = logging.getLogger(__name__)
 
 
@@ -37,6 +39,26 @@ def normpath(path):
 def pathjoin(*args):
     path = os.path.join(*args)
     return normpath(path)
+
+
+def get_envvar_path(path, envvar):
+    """Return the path converted to a path with the environment variable replacing a part of the path if it's possible."""
+    path = normpath(path)
+    envpath = normpath(os.getenv(envvar))
+    path = path.replace(envpath, '${}'.format(envvar))
+    return path
+
+
+def get_relative_path(path, envvar):
+    """Convert path to relative path from path in environment variable"""
+    path = normpath(path)
+    envpath = normpath(os.getenv(envvar))
+    return os.path.relpath(path, envpath)
+
+
+def get_absolute_path(path, envvar):
+    """Convert path with environment variable to full absolute path"""
+    return path.replace('${}'.format(envvar), os.getenv(envvar))
 
 
 def create_dir(path):
@@ -71,6 +93,22 @@ def json_write(data, filePath, default=None):
 def json_load(filePath):
     with open(filePath, 'r') as dataFile:
         return json.load(dataFile)
+
+
+def get_file_sequence(filepath, prefix='', suffix=''):
+    """Detect if the filepath is a single file or a sequence and replace the numbers with"""
+    # TODO
+    folder, filename = os.path.split(filepath)
+    mo = re.findall('\d+', filename)
+    mo = list(re.finditer('\d+', filename))
+    for i in mo[::-1]:
+        num = common.tonumber(i.group())
+        padding = '{{:0>{}}}'.format(len(i.group()))
+        decremented = os.path.join(folder, filename[:i.start()] + padding.format(num - 1) + filename[i.end():])
+        incremented = os.path.join(folder, filename[:i.start()] + padding.format(num + 1) + filename[i.end():])
+        if os.path.exists(decremented) or os.path.exists(incremented):
+            return True, os.path.join(folder, filename[:i.start()] + prefix + str(len(i.group())) + suffix + filename[i.end():]).replace('\\', '/')
+    return False, filepath
 
 
 def openfolder(path):
