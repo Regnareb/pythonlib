@@ -41,6 +41,12 @@ def pathjoin(*args):
     return normpath(path)
 
 
+def get_envvars_from_string(string):
+    regex = '(?<=\$)[A-Z]*'  # Take digits into account?
+    envvars = re.findall(regex, string)
+    return envvars
+
+
 def get_envvar_path(path, envvar):
     """Return the path converted to a path with the environment variable replacing a part of the path if it's possible."""
     path = normpath(path)
@@ -56,9 +62,13 @@ def get_relative_path(path, envvar):
     return os.path.relpath(path, envpath)
 
 
-def get_absolute_path(path, envvar):
+def get_absolute_path(path, envvars=[]):
     """Convert path with environment variable to full absolute path"""
-    return path.replace('${}'.format(envvar), os.getenv(envvar))
+    if not envvars:
+        envvars = get_envvars_from_string(path)
+    for var in envvars:
+        path = path.replace('${}'.format(var), os.getenv(var))
+    return path
 
 
 def create_dir(path):
@@ -131,18 +141,18 @@ def openfile(path):
 
 
 def internet(host="8.8.8.8", port=53, timeout=3):
-  """
-  Host: 8.8.8.8 (google-public-dns-a.google.com)
-  OpenPort: 53/tcp
-  Service: domain (DNS/TCP)
-  """
-  try:
-    socket.setdefaulttimeout(timeout)
-    socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
-    return True
-  except socket.error as ex:
-    logger.exception(ex)
-    return False
+    """
+    Host: 8.8.8.8 (google-public-dns-a.google.com)
+    OpenPort: 53/tcp
+    Service: domain (DNS/TCP)
+    """
+    try:
+        socket.setdefaulttimeout(timeout)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+        return True
+    except socket.error as ex:
+        logger.exception(ex)
+        return False
 
 
 def send_mail(sender, receivers, subject, text='', html=''):
