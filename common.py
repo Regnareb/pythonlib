@@ -47,6 +47,10 @@ def natural_sort_key(iterable):
     return sorted(iterable, key=alphanum_key)
 
 
+def natural_sort_key2(s, _nsre=re.compile('([0-9]+)')):
+    return [int(text) if text.isdigit() else text.lower() for text in _nsre.split(s)]
+
+
 def string2bool(string, strict=True):
     """Convert a string to its boolean value.
     The strict argument keep the string if neither True/False are found
@@ -120,6 +124,24 @@ def rstrip_all(toStrip, stripper):
     if toStrip.endswith(stripper):
         return toStrip[:-len(stripper)]
     return toStrip
+
+
+
+
+
+class Enum():
+    """An infinite loop between all elements of a list,
+    Usefull for having an incremental "toggle"
+    """
+    def __init__(self, enum_list):
+        self.enum_list = itertools.cycle(enum_list)
+
+    def next(self, current=None):
+        if current not in self.enum_list:
+            return next(self.enum_list)
+        for i in self.enum_list:
+            if i==current:
+                return next(self.enum_list)
 
 
 
