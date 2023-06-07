@@ -1,6 +1,6 @@
 import logging
 from PySide2 import QtCore, QtGui, QtWidgets
-import htmlhandler
+from . import htmlhandler
 logger = logging.getLogger(__name__)
 
 
@@ -59,7 +59,7 @@ class FloatSlider(QtWidgets.QSlider):
 class RowLayout(QtWidgets.QHBoxLayout):
     """An object where you are able to add different UI elements easily and automatically."""
     def __init__(self, parent=None):
-        super(RowLayout, self).__init__()
+        super(RowLayout, self).__init__(parent)
         self.parent = parent
         self.labels = []
         self.fields = []
@@ -74,8 +74,8 @@ class RowLayout(QtWidgets.QHBoxLayout):
     def addLabel(self, text=''):
         self.label = QtWidgets.QLabel(self.parent)
         self.label.setText(text)
-        self.label.setMinimumSize(QtCore.QSize(125, 19))
-        self.label.setMaximumSize(QtCore.QSize(125, 16777215))
+        # self.label.setMinimumSize(QtCore.QSize(125, 19))
+        # self.label.setMaximumSize(QtCore.QSize(125, 16777215))
         self.labels.append(self.label)
         self.addWidget(self.label)
         return self.label
@@ -86,7 +86,7 @@ class RowLayout(QtWidgets.QHBoxLayout):
         self.addItem(self.spacer)
         return self.spacer
 
-    def addField(self, validator='', minimum=None, maximum=None, decimals=3):
+    def addField(self, value=0, validator='', minimum=None, maximum=None, decimals=3):
         if validator == 'float':
             self.field = QtWidgets.QDoubleSpinBox(self.parent)
             self.field.setDecimals(decimals)
@@ -102,11 +102,12 @@ class RowLayout(QtWidgets.QHBoxLayout):
             self.field.setMinimum(minimum)
         if maximum:
             self.field.setMaximum(maximum)
+        self.field.setValue(value)
         self.fields.append(self.field)
         self.addWidget(self.field)
         return self.field
 
-    def addSlider(self, mode='', minimum=None, maximum=None):
+    def addSlider(self, value=0, mode='', minimum=None, maximum=None):
         if mode == 'float':
             self.slider = FloatSlider(self.parent)
         else:
@@ -116,6 +117,7 @@ class RowLayout(QtWidgets.QHBoxLayout):
             self.slider.setMinimum(minimum)
         if maximum is not None:
             self.slider.setMaximum(maximum)
+        self.slider.setValue(value)
         self.sliders.append(self.slider)
         self.addWidget(self.slider)
         return self.slider
@@ -134,18 +136,18 @@ class RowLayout(QtWidgets.QHBoxLayout):
         self.addWidget(self.toolbutton)
         return self.toolbutton
 
-    def addCheckbox(self, state=False):
-        self.checkbox = QtWidgets.QCheckBox(self.parent)
+    def addCheckbox(self, text='', state=False):
+        self.checkbox = QtWidgets.QCheckBox(text, parent=self.parent)
         self.checkbox.setCheckState(QtCore.Qt.Checked if state else QtCore.Qt.Unchecked)
         self.checkboxes.append(self.checkbox)
         self.addWidget(self.checkbox)
         return self.checkbox
 
-    def addButton(self, label='', size=None):
+    def addButton(self, label='', size=[]):
         self.button = QtWidgets.QPushButton(self.parent)
         self.button.setText(label)
         if size:
-            self.button.setMaximumSize(QtCore.QSize(size, size))
+            self.button.setMaximumSize(QtCore.QSize(*size))
         self.buttons.append(self.button)
         self.addWidget(self.button)
         return self.button
@@ -223,7 +225,7 @@ class RowLayout(QtWidgets.QHBoxLayout):
 
 class QLoggerHandler(htmlhandler.HtmlStreamHandler):
     def __init__(self, signal):
-        super().__init__()
+        super(QLoggerHandler, self).__init__()
         self.signal = signal
 
     def emit(self, record):
@@ -236,7 +238,7 @@ class LogPanel(QtWidgets.QDockWidget):
     changed_loglevel = QtCore.Signal(str)
 
     def __init__(self, parent=None, title=''):
-        super().__init__(parent=parent)
+        super(LogPanel, self).__init__(parent=parent)
         self.setWindowTitle('Logs')
         self.setObjectName('logs')
         self.levels = ['Debug', 'Info', 'Warning', 'Error', 'Critical']
@@ -273,7 +275,7 @@ class LogPanel(QtWidgets.QDockWidget):
 
 class KeySequenceRecorder(QtWidgets.QLineEdit):
     def __init__(self, keySequence, parent=None):
-        super().__init__(parent)
+        super(KeySequenceRecorder, self).__init__(parent)
         self.setKeySequence(keySequence)
 
     def setKeySequence(self, keySequence):
@@ -309,7 +311,7 @@ class KeySequenceRecorder(QtWidgets.QLineEdit):
 
 class Systray(QtWidgets.QMainWindow):
     def __init__(self):
-        super().__init__()
+        super(Systray, self).__init__()
         self.createTrayIcon()
 
     def setIcon(self, icon):
@@ -347,3 +349,68 @@ class Systray(QtWidgets.QMainWindow):
 
     def quit(self):
         QtGui.qApp.quit()
+
+
+
+
+
+class PlainTextEdit(QtWidgets.QPlainTextEdit):
+    editingFinished = QtCore.Signal()
+
+    def focusOutEvent(self, event):
+        super(PlainTextEdit, self).focusOutEvent(event)
+        self.editingFinished.emit()
+
+
+
+class LineditSpoiler(QtWidgets.QLineEdit):
+    def __init__(self, blurAmount=10, parent=None):
+        super(LineditSpoiler, self).__init__(parent=parent)
+        self.blurAmount = blurAmount
+        self.effect = QtWidgets.QGraphicsBlurEffect(self)
+        self.effect.setBlurRadius(blurAmount)
+        self.setGraphicsEffect(self.effect)
+
+    def enterEvent(self, event):
+        self.effect.setBlurRadius(0)
+        super(LineditSpoiler, self).enterEvent(event)
+
+    def leaveEvent(self, event):
+        self.effect.setBlurRadius(self.blurAmount)
+        super(LineditSpoiler, self).leaveEvent(event)
+
+
+
+class KeySequenceRecorder(QtWidgets.QLineEdit):
+    def __init__(self, keySequence, parent=None):
+        super(KeySequenceRecorder, self).__init__(parent)
+        self.setKeySequence(keySequence)
+
+    def setKeySequence(self, keySequence):
+        try:
+            self.keySequence = keySequence.toString(QtGui.QKeySequence.NativeText)
+        except AttributeError:
+            self.keySequence = keySequence
+        self.setText(self.keySequence)
+
+    def keyPressEvent(self, e):
+        if e.type() == QtCore.QEvent.KeyPress:
+            key = e.key()
+            if key == QtCore.Qt.Key_unknown:
+                logger.warning('Unknown key for shortcut')
+                return
+            if(key == QtCore.Qt.Key_Control or
+            key == QtCore.Qt.Key_Shift or
+            key == QtCore.Qt.Key_Alt or
+            key == QtCore.Qt.Key_Meta):
+                return
+            modifiers = e.modifiers()
+            if modifiers & QtCore.Qt.ShiftModifier:
+                key += QtCore.Qt.SHIFT
+            if modifiers & QtCore.Qt.ControlModifier:
+                key += QtCore.Qt.CTRL
+            if modifiers & QtCore.Qt.AltModifier:
+                key += QtCore.Qt.ALT
+            if modifiers & QtCore.Qt.MetaModifier:
+                key += QtCore.Qt.META
+            self.setKeySequence(QtGui.QKeySequence(key))
