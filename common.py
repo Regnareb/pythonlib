@@ -81,6 +81,27 @@ def tonumber(s):
         return float(s)
 
 
+def rgb2hex(rgb):
+    """Convert a rgb color (0, 0, 0) to hexadecimal one (#000000)
+    It takes as argument either a string with different float numbers
+    or directly a list or tuple of strings, ints or floats (normalised rgb)
+    """
+    if isinstance(rgb, basestring):
+        rgb = re.findall(r'([\d|\.]+)', rgb)
+        rgb = [tonumber(i) for i in rgb]
+    if isinstance(rgb, Iterable):
+        if isinstance(rgb[0], basestring):
+            rgb = [tonumber(i) for i in rgb]
+        if isinstance(rgb[0], float):
+            rgb = [int(i*255) for i in rgb]  # Convert 0-1 based rgb to 255 values
+    rgb = [max(0, min(i, 255)) for i in rgb]  # Clamp rgb values
+    return "#{0:02x}{1:02x}{2:02x}".format(*rgb)
+
+
+def hex2rgb(hexcode):
+    return tuple(map(ord, hexcode[1:].decode('hex')))
+
+
 def shorten_string(string, maxlimit, separator='.. '):
     if len(string) <= maxlimit:
         return string
