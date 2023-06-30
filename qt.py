@@ -169,27 +169,39 @@ class RowLayout(QtWidgets.QHBoxLayout):
             return False
         return True
 
+    def connectCheckboxState(self):
+        """Disable/Enable all widgets depending of the state of the checkbox"""
+        state = self.checkbox.checkState()
+        for widget in self.labels + self.fields + self.sliders + self.comboboxes + self.toolbuttons + self.buttons:
+            widget.setEnabled(state)
+
     def connectFieldSlider(self):
         self.field.valueChanged.connect(self.toSlider)
         self.slider.valueChanged.connect(self.toField)
 
     def toField(self, *args):
+        self.field.blockSignals(True)
         self.field.setValue(self.slider.value())
+        self.field.blockSignals(False)
 
     def toSlider(self, *args):
+        self.slider.blockSignals(True)
         self.slider.setValue(args[0])
+        self.slider.blockSignals(False)
 
-    def setText(self, texts):
+    def setTexts(self, texts):
         for label, text in zip(self.labels, texts):
             label.setText(text)
 
-    def setValue(self, values):
+    def setValues(self, values):
         for field, value in zip(self.fields, values):
             field.setValue(value)
-        for checkbox, state in zip(self.checkboxes, values):
+
+    def setStates(self, states):
+        for checkbox, state in zip(self.checkboxes, states):
             checkbox.setCheckState(QtCore.Qt.Checked if state else QtCore.Qt.Unchecked)
 
-    def setItem(self, items):
+    def setItems(self, items):
         for combobox, item in zip(self.comboboxes, items):
             combobox.setCurrentIndex(item)
 
