@@ -98,9 +98,9 @@ class RowLayout(QtWidgets.QHBoxLayout):
         self.field.setMinimumSize(QtCore.QSize(70, 0))
         self.field.setMaximumSize(QtCore.QSize(70, 16777215))
         self.field.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
-        if minimum:
+        if minimum is not None:
             self.field.setMinimum(minimum)
-        if maximum:
+        if maximum is not None:
             self.field.setMaximum(maximum)
         self.field.setValue(value)
         self.fields.append(self.field)
@@ -205,15 +205,15 @@ class RowLayout(QtWidgets.QHBoxLayout):
         for combobox, item in zip(self.comboboxes, items):
             combobox.setCurrentIndex(item)
 
-    def getValue(self):
-        values = []
+    def getValues(self):
+        values = {'field': [], 'combobox': [], 'checkbox': []}
         for field in self.fields:
-            values.append(field.valueFromText(field.text()))
+            values['field'].append(field.valueFromText(field.text()))
         for combobox in self.comboboxes:
-            values.append(combobox.currentIndex())
+            values['combobox'].append(combobox.currentIndex())
         for checkbox in self.checkboxes:
             state = checkbox.checkState()
-            values.append(bool(state))
+            values['checkbox'].append(bool(state))
         return values
 
     def hide(self):
@@ -223,15 +223,6 @@ class RowLayout(QtWidgets.QHBoxLayout):
     def show(self):
         for widget in self.labels + self.fields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
             widget.show()
-
-    def setToolTip(self, tip):
-        for widget in self.labels + self.fields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
-            widget.setToolTip(tip)
-
-    def setStatusTip(self, tip):
-        for widget in self.labels + self.fields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
-            widget.setToolTip(tip)
-
 
 
 
