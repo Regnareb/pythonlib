@@ -224,6 +224,11 @@ class RowLayout(QtWidgets.QHBoxLayout):
         for widget in self.labels + self.fields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
             widget.show()
 
+    def setToolTip(self, tip):
+        """Add a general tooltip for all row"""
+        for widget in self.labels + self.fields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
+            widget.setToolTip(tip)
+
 
 
 class QLoggerHandler(htmlhandler.HtmlStreamHandler):
