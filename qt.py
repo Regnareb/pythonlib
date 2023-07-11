@@ -284,6 +284,7 @@ class LogPanel(QtWidgets.QDockWidget):
 class KeySequenceRecorder(QtWidgets.QLineEdit):
     def __init__(self, keySequence, parent=None):
         super(KeySequenceRecorder, self).__init__(parent)
+        self.keymap = {'Esc': ''}
         self.setKeySequence(keySequence)
 
     def setKeySequence(self, keySequence):
@@ -291,6 +292,7 @@ class KeySequenceRecorder(QtWidgets.QLineEdit):
             self.keySequence = keySequence.toString(QtGui.QKeySequence.NativeText)
         except AttributeError:
             self.keySequence = keySequence
+        self.keySequence = self.keymap.get(self.keySequence, self.keySequence)
         self.setText(self.keySequence)
 
     def keyPressEvent(self, e):
@@ -386,39 +388,3 @@ class LineditSpoiler(QtWidgets.QLineEdit):
     def leaveEvent(self, event):
         self.effect.setBlurRadius(self.blurAmount)
         super(LineditSpoiler, self).leaveEvent(event)
-
-
-
-class KeySequenceRecorder(QtWidgets.QLineEdit):
-    def __init__(self, keySequence, parent=None):
-        super(KeySequenceRecorder, self).__init__(parent)
-        self.setKeySequence(keySequence)
-
-    def setKeySequence(self, keySequence):
-        try:
-            self.keySequence = keySequence.toString(QtGui.QKeySequence.NativeText)
-        except AttributeError:
-            self.keySequence = keySequence
-        self.setText(self.keySequence)
-
-    def keyPressEvent(self, e):
-        if e.type() == QtCore.QEvent.KeyPress:
-            key = e.key()
-            if key == QtCore.Qt.Key_unknown:
-                logger.warning('Unknown key for shortcut')
-                return
-            if(key == QtCore.Qt.Key_Control or
-            key == QtCore.Qt.Key_Shift or
-            key == QtCore.Qt.Key_Alt or
-            key == QtCore.Qt.Key_Meta):
-                return
-            modifiers = e.modifiers()
-            if modifiers & QtCore.Qt.ShiftModifier:
-                key += QtCore.Qt.SHIFT
-            if modifiers & QtCore.Qt.ControlModifier:
-                key += QtCore.Qt.CTRL
-            if modifiers & QtCore.Qt.AltModifier:
-                key += QtCore.Qt.ALT
-            if modifiers & QtCore.Qt.MetaModifier:
-                key += QtCore.Qt.META
-            self.setKeySequence(QtGui.QKeySequence(key))
