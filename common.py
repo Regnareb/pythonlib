@@ -9,6 +9,11 @@ import functools
 from collections import Iterable
 logger = logging.getLogger(__name__)
 
+try:  # TODO Remove when python2 is far away
+  basestring
+except NameError:
+  basestring = str
+
 
 def pairwise(iterable):
     """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
@@ -151,7 +156,7 @@ def rstrip_all(toStrip, stripper):
 
 
 class Enum():
-    """An infinite loop between all elements of a list,
+    """An infinite loop between all elements of an iterable,
     Usefull for having an incremental "toggle"
     """
     def __init__(self, enum_list):
