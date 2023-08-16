@@ -229,6 +229,10 @@ class RowLayout(QtWidgets.QHBoxLayout):
         for widget in self.labels + self.fields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
             widget.setToolTip(tip)
 
+    def setEnabledChildren(self, state):
+        for widget in self.labels + self.fields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
+            widget.setEnabled(state)
+
 
 
 class QLoggerHandler(htmlhandler.HtmlStreamHandler):
