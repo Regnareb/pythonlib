@@ -14,7 +14,7 @@ from zipfile import ZipFile
 from contextlib import contextmanager
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import common
+from . import common
 logger = logging.getLogger(__name__)
 
 
