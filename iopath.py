@@ -9,8 +9,6 @@ import socket
 import smtplib
 import logging
 import subprocess
-from io import BytesIO
-from zipfile import ZipFile
 from contextlib import contextmanager
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -81,14 +79,14 @@ def create_dir(path):
 
 
 def pickle_object(fullPath, toPickle):
-    """ Pickle an object at the designated path """
+    """Pickle an object at the designated path"""
     with open(fullPath, 'w') as f:
         pickle.dump(toPickle, f)
     f.close()
 
 
 def unpickle_object(fullPath):
-    """ unPickle an object from the designated file path """
+    """unPickle an object from the designated file path"""
     with open(fullPath, 'r') as f:
         fromPickle = pickle.load(f)
     f.close()
@@ -106,7 +104,10 @@ def json_load(filePath):
 
 
 def get_file_sequence(filepath, prefix='', suffix=''):
-    """Detect if the filepath is a single file or a sequence and replace the numbers with"""
+    """Detect if the filepath is a single file or a sequence
+    If it's a sequence replace the numbers with the prefix/padding number/suffix
+    example: <%3> or $F3
+    """
     # TODO
     folder, filename = os.path.split(filepath)
     mo = re.findall('\d+', filename)
@@ -117,11 +118,13 @@ def get_file_sequence(filepath, prefix='', suffix=''):
         decremented = os.path.join(folder, filename[:i.start()] + padding.format(num - 1) + filename[i.end():])
         incremented = os.path.join(folder, filename[:i.start()] + padding.format(num + 1) + filename[i.end():])
         if os.path.exists(decremented) or os.path.exists(incremented):
-            return True, os.path.join(folder, filename[:i.start()] + prefix + str(len(i.group())) + suffix + filename[i.end():]).replace('\\', '/')
+            filepath = os.path.join(folder, filename[:i.start()] + prefix + str(len(i.group())) + suffix + filename[i.end():]).replace('\\', '/')
+            return True, filepath
     return False, filepath
 
 
 def openfolder(path):
+    """For each OS platform open the explorer on the path passed as argument"""
     if sys.platform.startswith('darwin'):
         return subprocess.Popen(['open', '--', path])
     elif sys.platform.startswith('linux'):
@@ -132,6 +135,7 @@ def openfolder(path):
 
 
 def openfile(path):
+    """For each OS platform execute the file path passed as argument"""
     if sys.platform.startswith('darwin'):
         subprocess.call(('open', path))
     elif os.name == 'nt':
@@ -176,7 +180,7 @@ def send_mail(sender, receivers, subject, text='', html=''):
 
 @contextmanager
 def pause_services(services):
-    if sys.platform=='win32':
+    if sys.platform == 'win32':
         admin = ctypes.windll.shell32.IsUserAnAdmin() != 0
         if admin:
             for service in services:
@@ -209,6 +213,8 @@ def pause_processes(processes):
 
 def download_pssuspend(path):
     import requests
+    from io import BytesIO
+    from zipfile import ZipFile
     url = 'https://download.sysinternals.com/files/PSTools.zip'
     response = requests.get(url)
     zipfile = ZipFile(BytesIO(response.content))
