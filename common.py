@@ -6,7 +6,10 @@ import inspect
 import logging
 import itertools
 import functools
-from collections import Iterable
+try:
+    from collections.abc import Iterable
+except ImportError:
+    from collections import Iterable  # Compatibility for python<3.10
 logger = logging.getLogger(__name__)
 
 try:  # TODO Remove when python2 is far away
