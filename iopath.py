@@ -7,25 +7,26 @@ import pickle
 import logging
 import subprocess
 from contextlib import contextmanager
+from . import utils
 from . import common
 logger = logging.getLogger(__name__)
 
 
-def formatpath(fileName, path='', prefix='', suffix=''):
-    """ Create a complete path with a filename, a path and prefixes/suffixes
+def formatpath(filename, path='', prefix='', suffix=''):
+    """Create a complete path with a filename, a path and prefixes/suffixes
     /path/prefix_filename_suffix.ext"""
     path = os.path.join(path, "")  # Delete ?
     if suffix:
         suffix = '_' + suffix
     if prefix:
         prefix = prefix + '_'
-    fileName, fileExt = os.path.splitext(fileName)
-    filePath = os.path.join(path, prefix + fileName + suffix + fileExt)
+    filename, fileExt = os.path.splitext(filename)
+    filePath = os.path.join(path, prefix + filename + suffix + fileExt)
     return filePath
 
 
 def normpath(path):
-    """Fix some problems with Maya evals or some file commands needing double escaped anti-slash '\\\\' in the path in Windows"""
+    """Fix some problems with some programs not accepting backward slashes in file paths"""
     return os.path.normpath(path).replace('\\', '/')
 
 
@@ -44,23 +45,27 @@ def get_envvar_path(path, envvar):
     """Return the path converted to a path with the environment variable replacing a part of the path if it's possible."""
     path = normpath(path)
     envpath = normpath(os.getenv(envvar))
-    path = path.replace(envpath, '${}'.format(envvar))
+    path = path.replace(envpath, f'${envvar}')
     return path
 
 
 def get_relative_path(path, envvar):
-    """Convert path to relative path from path in environment variable"""
+    """Convert path to a relative path from path in environment variable
+    /foo/bar/ and /foo/bar2/ will return ../bar/
+    The environment variable path can only be a directory, not a file
+    On Windows, it will raise a ValueError if the two paths are not on the same disk
+    """
     path = normpath(path)
     envpath = normpath(os.getenv(envvar))
     return os.path.relpath(path, envpath)
 
 
 def get_absolute_path(path, envvars=[]):
-    """Convert path with environment variable to full absolute path"""
+    """Convert a path with an environment variable inside it, to a full absolute path if the env var exists"""
     if not envvars:
         envvars = get_envvars_from_string(path)
     for var in envvars:
-        path = path.replace('${}'.format(var), os.getenv(var))
+        path = path.replace(f'${var}', os.getenv(var))
     return path
 
 
@@ -83,9 +88,9 @@ def pickle_object(fullPath, toPickle):
 def unpickle_object(fullPath):
     """unPickle an object from the designated file path"""
     with open(fullPath, 'r') as f:
-        fromPickle = pickle.load(f)
+        frompickle = pickle.load(f)
     f.close()
-    return fromPickle
+    return frompickle
 
 
 def json_write(data, filePath, default=None):
@@ -120,60 +125,59 @@ def get_file_sequence(filepath, prefix='', suffix=''):
 
 def openfolder(path):
     """For each OS platform open the explorer on the path passed as argument"""
-    if sys.platform.startswith('darwin'):
-        return subprocess.Popen(['open', '--', path])
-    elif sys.platform.startswith('linux'):
+    if sys.platform.startswith('linux'):
         return subprocess.Popen(['xdg-open', '--', path])
-    elif sys.platform.startswith('win32'):
+    elif sys.platform in ['win32', 'cygwin']:
         path = path.replace('/', '\\')
         return subprocess.Popen(['explorer', path])
+    elif sys.platform == 'darwin':
+        return subprocess.Popen(['open', '--', path])
 
 
 def openfile(path):
     """For each OS platform execute the file path passed as argument"""
-    if sys.platform.startswith('darwin'):
-        subprocess.call(('open', path))
-    elif os.name == 'nt':
-        os.startfile(path)
-    elif os.name == 'posix':
+    if sys.platform.startswith('linux'):
         subprocess.call(('xdg-open', path))
+    elif sys.platform in ['win32', 'cygwin']:
+        os.startfile(path)
+    elif sys.platform == 'darwin':
+        subprocess.call(('open', path))
 
 
 
 @contextmanager
-def pause_services(services):
-    if sys.platform == 'win32':
-        admin = ctypes.windll.shell32.IsUserAnAdmin() != 0
-        if admin:
-            for service in services:
-                subprocess.Popen('net stop "{}"'.format(service), creationflags=subprocess.CREATE_NO_WINDOW)
-        elif services:
-            logger.warning("No administrator rights, can't pause Windows Services")
-        yield
-        if admin:
-            for service in services:
-                subprocess.Popen('net start "{}"'.format(service), creationflags=subprocess.CREATE_NO_WINDOW)
-    else:
-        yield
+def pause_services(services, strict=False):
+    if not utils.is_admin():
+        services = []
+        logger.error("No administrator rights, can't pause Windows Services")
+        if strict:
+            raise RuntimeError
+
+    for service in services:
+        subprocess.Popen(f'net stop "{service}"', creationflags=subprocess.CREATE_NO_WINDOW)
+    yield
+    for service in services:
+        subprocess.Popen(f'net start "{service}"', creationflags=subprocess.CREATE_NO_WINDOW)
 
 
 @contextmanager
-def pause_processes(processes):
-    if sys.platform in ['Windows', 'win32', 'cygwin']:
+def pause_processes(processes, pssuspend_path='pssuspend.exe'):
+    if sys.platform in ['win32', 'cygwin']:
         for process in processes:
-            subprocess.Popen('lib/pssuspend.exe "{}"'.format(process), creationflags=subprocess.CREATE_NO_WINDOW, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+            subprocess.Popen(f'{pssuspend_path} "{process}"', creationflags=subprocess.CREATE_NO_WINDOW, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
         yield
         for process in processes:
-            subprocess.Popen('lib/pssuspend.exe -r "{}"'.format(process), creationflags=subprocess.CREATE_NO_WINDOW, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+            subprocess.Popen(f'{pssuspend_path} -r "{process}"', creationflags=subprocess.CREATE_NO_WINDOW, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
     else:
         for process in processes:
-           subprocess.Popen('pkill -TSTP "{}$"'.format(process), shell=True)
+           subprocess.Popen(f'pkill -TSTP "{process}$"', shell=True)
         yield
         for process in processes:
-            subprocess.Popen('pkill -CONT "{}$"'.format(process), shell=True)
+            subprocess.Popen(f'pkill -CONT "{process}$"', shell=True)
 
 
 def download_pssuspend(path):
+    """pssuspend is a Windows software that can pause and resume executable on the fly"""
     import requests
     from io import BytesIO
     from zipfile import ZipFile
