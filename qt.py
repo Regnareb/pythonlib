@@ -3,6 +3,7 @@ try:
     from PySide6 import QtCore, QtGui, QtWidgets
 except ImportError:
     from PySide2 import QtCore, QtGui, QtWidgets
+from . import common
 from . import htmlhandler
 logger = logging.getLogger(__name__)
 
@@ -17,25 +18,45 @@ def update_style(obj, name, value):
     obj.setStyle(obj.style())
 
 
+class BaseMixin():
+    """Use this Mixin class to provide an automatic way to save and restore all the data for the UI state.
+    You can pass arguments for the QSettings object like organization and application name and settings format.
+    It can be used with a QMainWindow or QWidget like that
 
-class BaseWindow(QtWidgets.QWidget):
-    def __init__(self, title=''):
-        super(BaseWindow, self).__init__()
-        # self.setParent(hou.ui.mainQtWindow(), QtCore.Qt.Window)
-        self.setWindowTitle(title)
+    class BaseWindow(BaseMixin, QtWidgets.QMainWindow):
+        def __init__(self, *args):
+            super(BaseWindow, self).__init__()
+            self.load_settings(*args)
+    """
+    def load_settings(self, *args):
+        self.settings = QtCore.QSettings(*args)
+        self.settings.beginGroup('mainWindow')
+        self.restoreGeometry(self.settings.value('geometry'))
+        try:
+            self.restoreState(self.settings.value('saveState', self.saveState()))
+        except AttributeError:
+            pass
+        self.move(self.settings.value('pos', self.pos()))
+        self.resize(self.settings.value('size', self.size()))
+        if common.string2bool(self.settings.value('maximized')):
+           self.showMaximized()
+        if common.string2bool(self.settings.value('fullScreen')):
+           self.showFullScreen()
+        self.settings.endGroup()
 
-    def load_qsettings(self):
-        self.settings = QtCore.QSettings('regnareb', 'Stream Manager')
-        if self.settings.value('initialised_once'):
-            self.restoreGeometry(self.settings.value('geometry'))
-            self.restoreState(self.settings.value('windowState'))
-        else:
-            logger.info('First launch.')
-            self.settings.setValue('initialised_once', 1)
-
-    def quit(self):
-        self.settings.setValue("geometry", self.saveGeometry())
-        self.settings.setValue("windowState", self.saveState())
+    def closeEvent(self, event):
+        self.settings.beginGroup('mainWindow')
+        self.settings.setValue('geometry', self.saveGeometry())
+        try:
+            self.settings.setValue('saveState', self.saveState())
+        except AttributeError:
+            pass
+        if not self.isMaximized() and not self.isFullScreen():
+            self.settings.setValue('pos', self.pos())
+            self.settings.setValue('size', self.size())
+        self.settings.setValue('maximized', self.isMaximized())
+        self.settings.setValue('fullScreen', self.isFullScreen())
+        self.settings.endGroup()
 
 
 class FloatSlider(QtWidgets.QSlider):
