@@ -346,15 +346,31 @@ class KeySequenceRecorder(QtWidgets.QLineEdit):
             self.setKeySequence(QtGui.QKeySequence(key))
 
 
+class SystrayMixin():
+    """Create a systray icon with basic interactivity to restore the main window and quit the main app.
+    You need to give a reference to the main app as first argument.
+    A settings attribute need to be created in the main class for the MessageBox to be displayed only once.
 
-class Systray(QtWidgets.QMainWindow):
-    def __init__(self):
-        super(Systray, self).__init__()
-        self.createTrayIcon()
+class Tray(SystrayMixin, QtWidgets.QWidget):
+    def __init__(self, mainapp, parent=None):
+        icon = QtGui.QIcon('icon.png')
+        self.settings = QtCore.QSettings('organisation', 'appname')
+        super(Tray, self).__init__(mainapp, icon, parent=parent)
 
-    def setIcon(self, icon):
+app = QtWidgets.QApplication(sys.argv)
+tray = Tray(app)
+sys.exit(app.exec())
+    """
+    def __init__(self, mainapp, icon=None, parent=None):
+        super(SystrayMixin, self).__init__(parent=parent)
+        self.mainapp = mainapp
+        self.create_tray_icon()
+        if icon:
+            self.set_icon(icon)
+
+    def set_icon(self, icon):
         self.setWindowIcon(icon)
-        self.trayIcon.setIcon(icon)
+        self.trayicon.setIcon(icon)
 
     def restore(self):
         self.show()
@@ -364,29 +380,30 @@ class Systray(QtWidgets.QMainWindow):
         if reason in (QtWidgets.QSystemTrayIcon.Trigger, QtWidgets.QSystemTrayIcon.DoubleClick):
             self.restore()
 
-    def createTrayIcon(self):
-        self.quitAction = QtWidgets.QAction("&Quit", self, triggered=self.quit)
-        self.trayIconMenu = QtWidgets.QMenu(self)
-        self.trayIconMenu.addSeparator()
-        self.trayIconMenu.addAction(self.quitAction)
-        self.trayIcon = QtWidgets.QSystemTrayIcon(self)
-        self.trayIcon.setContextMenu(self.trayIconMenu)
-        self.trayIcon.messageClicked.connect(self.showNormal)
-        self.trayIcon.activated.connect(self.iconActivated)
-        self.trayIcon.show()
+    def create_tray_icon(self):
+        self.quitAction = QtGui.QAction('&Quit', self, triggered=self.quit)
+        self.trayicon_menu = QtWidgets.QMenu(self)
+        self.trayicon_menu.addSeparator()
+        self.trayicon_menu.addAction(self.quitAction)
+        self.trayicon = QtWidgets.QSystemTrayIcon(self)
+        self.trayicon.setContextMenu(self.trayicon_menu)
+        self.trayicon.messageClicked.connect(self.showNormal)
+        self.trayicon.activated.connect(self.iconActivated)
+        self.trayicon.show()
 
     def closeEvent(self, event):
-        if self.trayIcon.isVisible():
-            if not self.settings.value('showed_quitmessage'):
-                QtWidgets.QMessageBox.information(self, "Minimise to System Tray", "The program will keep running in the system tray. To terminate the program, choose <b>Quit</b> in the context menu of the system tray icon.")
-                self.settings.setValue("showed_quitmessage", True)
+        if self.trayicon.isVisible():
+            if not self.settings.value('tray_showed_quitmessage'):
+                QtWidgets.QMessageBox.information(self, 'Minimise to System Tray', 'The program will keep running in the system tray. To terminate the program, choose <b>Quit</b> in the context menu of the system tray icon.')
+                self.settings.setValue('tray_showed_quitmessage', True)
             self.hide()
             event.ignore()
         else:
+            super(SystrayMixin, self).closeEvent()
             self.quit()
 
     def quit(self):
-        QtGui.qApp.quit()
+        self.mainapp.quit()
 
 
 
