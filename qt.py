@@ -90,6 +90,7 @@ class RowLayout(QtWidgets.QHBoxLayout):
         self.sliders = []
         self.spacers = []
         self.buttons = []
+        self.textfields = []
         self.comboboxes = []
         self.toolbuttons = []
         self.checkboxes = []
@@ -130,6 +131,12 @@ class RowLayout(QtWidgets.QHBoxLayout):
         self.fields.append(self.field)
         self.addWidget(self.field)
         return self.field
+
+    def addTextField(self):
+        self.textfield = QtWidgets.QLineEdit(self.parent)
+        self.textfields.append(self.textfield)
+        self.addWidget(self.textfield)
+        return self.textfield
 
     def addSlider(self, value=0, mode='', minimum=None, maximum=None):
         if mode == 'float':
@@ -196,7 +203,7 @@ class RowLayout(QtWidgets.QHBoxLayout):
     def connectCheckboxState(self):
         """Disable/Enable all widgets depending of the state of the checkbox"""
         state = self.checkbox.checkState()
-        for widget in self.labels + self.fields + self.sliders + self.comboboxes + self.toolbuttons + self.buttons:
+        for widget in self.labels + self.fields + self.textfields + self.sliders + self.comboboxes + self.toolbuttons + self.buttons:
             widget.setEnabled(state)
 
     def connectFieldSlider(self):
@@ -230,9 +237,11 @@ class RowLayout(QtWidgets.QHBoxLayout):
             combobox.setCurrentIndex(item)
 
     def getValues(self):
-        values = {'field': [], 'combobox': [], 'checkbox': []}
+        values = {'field': [], 'textfield': [], 'combobox': [], 'checkbox': []}
         for field in self.fields:
             values['field'].append(field.valueFromText(field.text()))
+        for textfield in self.textfields:
+            values['textfield'].append(textfield.valueFromText(textfield.text()))
         for combobox in self.comboboxes:
             values['combobox'].append(combobox.currentIndex())
         for checkbox in self.checkboxes:
@@ -241,20 +250,20 @@ class RowLayout(QtWidgets.QHBoxLayout):
         return values
 
     def hide(self):
-        for widget in self.labels + self.fields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
+        for widget in self.labels + self.fields + self.textfields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
             widget.hide()
 
     def show(self):
-        for widget in self.labels + self.fields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
+        for widget in self.labels + self.fields + self.textfields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
             widget.show()
 
     def setToolTip(self, tip):
         """Add a general tooltip for all row"""
-        for widget in self.labels + self.fields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
+        for widget in self.labels + self.fields + self.textfields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
             widget.setToolTip(tip)
 
     def setEnabledChildren(self, state):
-        for widget in self.labels + self.fields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
+        for widget in self.labels + self.fields + self.textfields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
             widget.setEnabled(state)
 
 
