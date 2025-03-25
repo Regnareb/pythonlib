@@ -258,6 +258,64 @@ class RowLayout(QtWidgets.QHBoxLayout):
             widget.setEnabled(state)
 
 
+def GroupBox(title, items, collapsible=True, collapsed=False):
+    """Create a QGroupBox and add all elements in the 'items' argument to it.
+    The collapsible argument make the QGroupBox foldable,
+    """
+    if collapsible:
+        groupbox = CollapsibleGroupBox(title=title, collapsed=collapsed)
+    else:
+        groupbox = QtWidgets.QGroupBox(title=title)
+    vbox = QtWidgets.QVBoxLayout()
+    groupbox.setLayout(vbox)
+    for i in items.values():
+        vbox.addLayout(i)
+    return groupbox
+
+
+class CollapsibleGroupBox(QtWidgets.QGroupBox):
+    """A QGroupBox that can be collapSed by clicking on its title.
+    You can set the speed at which the animation goes by modifying the attribute 'animation_duration'.
+    The prefix attribute can be used to add an ASCII icon in front of the title.
+    """
+    def __init__(self, title, collapsed=False, prefix={True: '▶  ', False: '▼  '}, parent=None):
+        title = prefix[collapsed] + title
+        super(CollapsibleGroupBox, self).__init__(title, parent)
+        self.setStyleSheet('''
+            QGroupBox:flat {{
+                border-left: none;
+                border-right: none;
+                border-bottom: none;
+                border-radius: 0px;
+            }}''')
+        self.animation_duration = 150
+        self.prefix = prefix
+        self.collapsed = collapsed
+        if collapsed:
+            self.on_toggle(collapsed)
+
+    def on_toggle(self, collapsed):
+        for i in [self, self.window()]:
+            setattr(i, 'collapse_animation', QtCore.QPropertyAnimation(i, b'maximumHeight'))
+            i.collapse_animation.setDuration(self.animation_duration)
+            i.collapse_animation.setStartValue(i.sizeHint().height() if collapsed else 20)
+            i.collapse_animation.setEndValue(20 if collapsed else i.sizeHint().height())
+            i.collapse_animation.setEasingCurve(QtCore.QEasingCurve.Type.InOutCubic)
+            i.collapse_animation.start(QtCore.QAbstractAnimation.DeletionPolicy.DeleteWhenStopped)
+        character = self.title()[:len(self.prefix[not collapsed])]
+        title = self.title().replace(character, self.prefix[collapsed])
+        self.setTitle(title)
+        self.setFlat(collapsed)
+        self.collapsed = collapsed
+
+    def mouseReleaseEvent(self, event):
+        super(CollapsibleGroupBox, self).mouseReleaseEvent(event)
+        box = QtWidgets.QStyleOptionGroupBox()
+        self.initStyleOption(box)
+        hit = self.style().hitTestComplexControl(QtWidgets.QStyle.CC_GroupBox, box, event.pos())
+        if (hit == QtWidgets.QStyle.SC_ScrollBarAddLine):
+            self.on_toggle(not self.collapsed)
+
 
 class QLoggerHandler(htmlhandler.HtmlStreamHandler):
     def __init__(self, signal):
