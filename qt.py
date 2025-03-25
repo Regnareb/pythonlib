@@ -21,7 +21,7 @@ def update_style(obj, name, value):
 class BaseMixin():
     """Use this Mixin class to provide an automatic way to save and restore all the data for the UI state.
     You can pass arguments for the QSettings object like organization and application name and settings format.
-    It can be used with a QMainWindow or QWidget like that
+    It can be used with a QMainWindow or QWidget like that:
 
     class BaseWindow(BaseMixin, QtWidgets.QMainWindow):
         def __init__(self, *args):
@@ -324,8 +324,7 @@ class QLoggerHandler(htmlhandler.HtmlStreamHandler):
 
     def emit(self, record):
         message = self.format(record)
-        self.signal.emit(QtCore.SIGNAL("logMsg(QString)"), message)
-
+        self.signal.emit(QtCore.SIGNAL('logMsg(QString)'), message)
 
 
 class LogPanel(QtWidgets.QDockWidget):
@@ -359,15 +358,15 @@ class LogPanel(QtWidgets.QDockWidget):
         self.setWidget(self.interface['main'])
         # Use old syntax signals as you can't have multiple inheritance with QObject
         self.emitter = QtCore.QObject()
-        self.connect(self.emitter, QtCore.SIGNAL("logMsg(QString)"), self.interface['textedit'].append)
+        self.connect(self.emitter, QtCore.SIGNAL('logMsg(QString)'), self.interface['textedit'].append)
         self.handler = QLoggerHandler(self.emitter)
         formatter = logging.Formatter('<span title="line %(lineno)d">%(levelname)s %(name)s.%(funcName)s() - %(message)s</span>')
         self.handler.setFormatter(formatter)
         logging.getLogger().addHandler(self.handler)
 
 
-
 class KeySequenceRecorder(QtWidgets.QLineEdit):
+    """A LineEdit that show the last key sequence pressed when the field was selected."""
     def __init__(self, keySequence, parent=None):
         super(KeySequenceRecorder, self).__init__(parent)
         self.keymap = {'Esc': ''}
@@ -464,19 +463,18 @@ sys.exit(app.exec())
         self.mainapp.quit()
 
 
-
-
-
-class PlainTextEdit(QtWidgets.QPlainTextEdit):
+class EditingFinishedMixin():
+    """A Mixin that add a signal for editing finished to widgets that do not support it, like QTextEdit and QPlainTextEdit
+    A  with a signal editingFinished missing from the official implementation."""
     editingFinished = QtCore.Signal()
 
     def focusOutEvent(self, event):
-        super(PlainTextEdit, self).focusOutEvent(event)
+        super(EditingFinishedMixin, self).focusOutEvent(event)
         self.editingFinished.emit()
 
 
-
 class LineditSpoiler(QtWidgets.QLineEdit):
+    """A LineEdit that blur its content unless the mouse hover over it."""
     def __init__(self, blurAmount=10, parent=None):
         super(LineditSpoiler, self).__init__(parent=parent)
         self.blurAmount = blurAmount
