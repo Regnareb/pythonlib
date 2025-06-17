@@ -67,8 +67,8 @@ class BaseMixin():
 
 class FloatSlider(QtWidgets.QSlider):
     """Create a slider able to return floats as a value."""
-    def __init__(self, parent, decimals=3, *args, **kargs):
-        super(FloatSlider, self).__init__(parent, *args, **kargs)
+    def __init__(self, decimals=3, *args, **kargs):
+        super(FloatSlider, self).__init__(*args, **kargs)
         self._multi = 10 ** decimals
         self.setMinimum(self.minimum())
         self.setMaximum(self.maximum())
@@ -77,13 +77,13 @@ class FloatSlider(QtWidgets.QSlider):
         return float(super(FloatSlider, self).value()) / self._multi
 
     def setMinimum(self, value):
-        return super(FloatSlider, self).setMinimum(value * self._multi)
+        return super(FloatSlider, self).setMinimum(float(value) * self._multi)
 
     def setMaximum(self, value):
-        return super(FloatSlider, self).setMaximum(value * self._multi)
+        return super(FloatSlider, self).setMaximum(float(value) * self._multi)
 
     def setValue(self, value):
-        super(FloatSlider, self).setValue(int(value * self._multi))
+        super(FloatSlider, self).setValue(int(float(value) * self._multi))
 
 
 class RowLayout(QtWidgets.QHBoxLayout):
