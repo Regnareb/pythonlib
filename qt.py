@@ -1,8 +1,14 @@
+import time
 import logging
+import collections
 try:
     from PySide6 import QtCore, QtGui, QtWidgets
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QAction
 except ImportError:
     from PySide2 import QtCore, QtGui, QtWidgets
+    from PySide2.QtCore import Qt
+    from PySide2.QtWidgets import QAction
 from . import common
 from . import htmlhandler
 logger = logging.getLogger(__name__)
@@ -61,8 +67,8 @@ class BaseMixin():
 
 class FloatSlider(QtWidgets.QSlider):
     """Create a slider able to return floats as a value."""
-    def __init__(self, parent, decimals=3, *args, **kargs):
-        super(FloatSlider, self).__init__(parent, *args, **kargs)
+    def __init__(self, decimals=3, *args, **kargs):
+        super(FloatSlider, self).__init__(*args, **kargs)
         self._multi = 10 ** decimals
         self.setMinimum(self.minimum())
         self.setMaximum(self.maximum())
@@ -71,20 +77,19 @@ class FloatSlider(QtWidgets.QSlider):
         return float(super(FloatSlider, self).value()) / self._multi
 
     def setMinimum(self, value):
-        return super(FloatSlider, self).setMinimum(value * self._multi)
+        return super(FloatSlider, self).setMinimum(float(value) * self._multi)
 
     def setMaximum(self, value):
-        return super(FloatSlider, self).setMaximum(value * self._multi)
+        return super(FloatSlider, self).setMaximum(float(value) * self._multi)
 
     def setValue(self, value):
-        super(FloatSlider, self).setValue(int(value * self._multi))
+        super(FloatSlider, self).setValue(int(float(value) * self._multi))
 
 
 class RowLayout(QtWidgets.QHBoxLayout):
     """An object where you are able to add different UI elements easily and automatically."""
     def __init__(self, parent=None):
         super(RowLayout, self).__init__(parent)
-        self.parent = parent
         self.labels = []
         self.fields = []
         self.sliders = []
@@ -96,8 +101,8 @@ class RowLayout(QtWidgets.QHBoxLayout):
         self.checkboxes = []
         self.separators = []
 
-    def addLabel(self, text=''):
-        self.label = QtWidgets.QLabel(self.parent)
+    def addLabel(self, text='', *args, **kwargs):
+        self.label = QtWidgets.QLabel(*args, **kwargs)
         self.label.setText(text)
         # self.label.setMinimumSize(QtCore.QSize(125, 19))
         # self.label.setMaximumSize(QtCore.QSize(125, 16777215))
@@ -111,38 +116,27 @@ class RowLayout(QtWidgets.QHBoxLayout):
         self.addItem(self.spacer)
         return self.spacer
 
-    def addField(self, value=0, validator='', minimum=None, maximum=None, decimals=3):
-        if validator == 'float':
-            self.field = QtWidgets.QDoubleSpinBox(self.parent)
-            self.field.setDecimals(decimals)
-            self.field.setSingleStep(0.5)
-            self.field.setCorrectionMode(QtWidgets.QAbstractSpinBox.CorrectToNearestValue)
-        else:
-            self.field = QtWidgets.QSpinBox(self.parent)
-        self.field.setAccelerated(True)
-        self.field.setMinimumSize(QtCore.QSize(70, 0))
-        self.field.setMaximumSize(QtCore.QSize(70, 16777215))
-        self.field.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
+    def addField(self, text='', validator='', minimum=None, maximum=None, decimals=2, singlestep=1, accelerated=True, *args, **kwargs):
+        self.field = BetterLineEdit(text, validator, *args, **kwargs)
+        self.field.setDecimals(decimals)
+        self.field.setSingleStep(singlestep)
+        self.field.setAccelerated(accelerated)
+        if validator in [QtGui.QIntValidator, QtGui.QDoubleValidator]:
+            self.field.setMinimumSize(QtCore.QSize(80, 0))
+            self.field.setMaximumSize(QtCore.QSize(80, 16777215))
         if minimum is not None:
             self.field.setMinimum(minimum)
         if maximum is not None:
             self.field.setMaximum(maximum)
-        self.field.setValue(value)
         self.fields.append(self.field)
         self.addWidget(self.field)
         return self.field
 
-    def addTextField(self):
-        self.textfield = QtWidgets.QLineEdit(self.parent)
-        self.textfields.append(self.textfield)
-        self.addWidget(self.textfield)
-        return self.textfield
-
-    def addSlider(self, value=0, mode='', minimum=None, maximum=None):
+    def addSlider(self, value=0, mode='', minimum=None, maximum=None, *args, **kwargs):
         if mode == 'float':
-            self.slider = FloatSlider(self.parent)
+            self.slider = FloatSlider(*args, **kwargs)
         else:
-            self.slider = QtWidgets.QSlider(self.parent)
+            self.slider = QtWidgets.QSlider(*args, **kwargs)
         self.slider.setOrientation(QtCore.Qt.Horizontal)
         if minimum is not None:
             self.slider.setMinimum(minimum)
@@ -153,29 +147,29 @@ class RowLayout(QtWidgets.QHBoxLayout):
         self.addWidget(self.slider)
         return self.slider
 
-    def addCombobox(self, items=[]):
-        self.combobox = QtWidgets.QComboBox(self.parent)
+    def addCombobox(self, items=[], *args, **kwargs):
+        self.combobox = QtWidgets.QComboBox(*args, **kwargs)
         for item in items:
             self.combobox.addItem(item)
         self.comboboxes.append(self.combobox)
         self.addWidget(self.combobox)
         return self.combobox
 
-    def addToolbutton(self):
-        self.toolbutton = QtWidgets.QToolButton(self.parent)
+    def addToolbutton(self, *args, **kwargs):
+        self.toolbutton = QtWidgets.QToolButton(*args, **kwargs)
         self.toolbuttons.append(self.toolbutton)
         self.addWidget(self.toolbutton)
         return self.toolbutton
 
-    def addCheckbox(self, text='', state=False):
-        self.checkbox = QtWidgets.QCheckBox(text, parent=self.parent)
+    def addCheckbox(self, text='', state=False, *args, **kwargs):
+        self.checkbox = ExclusiveCheckBox(text, *args, **kwargs)
         self.checkbox.setCheckState(QtCore.Qt.Checked if state else QtCore.Qt.Unchecked)
         self.checkboxes.append(self.checkbox)
         self.addWidget(self.checkbox)
         return self.checkbox
 
-    def addButton(self, label='', size=[]):
-        self.button = QtWidgets.QPushButton(self.parent)
+    def addButton(self, label='', size=[], *args, **kwargs):
+        self.button = QtWidgets.QPushButton(*args, **kwargs)
         self.button.setText(label)
         if size:
             self.button.setMaximumSize(QtCore.QSize(*size))
@@ -183,8 +177,8 @@ class RowLayout(QtWidgets.QHBoxLayout):
         self.addWidget(self.button)
         return self.button
 
-    def addSeparator(self):
-        self.separator = QtWidgets.QFrame(self.parent)
+    def addSeparator(self, *args, **kwargs):
+        self.separator = QtWidgets.QFrame(*args, **kwargs)
         self.separator.setFrameShape(QtWidgets.QFrame.HLine)
         self.separator.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.separators.append(self.separator)
@@ -224,9 +218,9 @@ class RowLayout(QtWidgets.QHBoxLayout):
         for label, text in zip(self.labels, texts):
             label.setText(text)
 
-    def setValues(self, values):
+    def setFields(self, values):
         for field, value in zip(self.fields, values):
-            field.setValue(value)
+            field.setText(value)
 
     def setStates(self, states):
         for checkbox, state in zip(self.checkboxes, states):
@@ -236,18 +230,57 @@ class RowLayout(QtWidgets.QHBoxLayout):
         for combobox, item in zip(self.comboboxes, items):
             combobox.setCurrentIndex(item)
 
-    def getValues(self):
-        values = {'field': [], 'textfield': [], 'combobox': [], 'checkbox': []}
-        for field in self.fields:
-            values['field'].append(field.valueFromText(field.text()))
-        for textfield in self.textfields:
-            values['textfield'].append(textfield.valueFromText(textfield.text()))
-        for combobox in self.comboboxes:
-            values['combobox'].append(combobox.currentIndex())
-        for checkbox in self.checkboxes:
-            state = checkbox.checkState()
-            values['checkbox'].append(bool(state))
-        return values
+    def getValues(self, by_objectnames=False):
+        """You can automatically get, save and restore states of your UI elements:
+        Either by objectNames if you set them as arguments each time you add an element
+        Or by the order of wich they are created
+        """
+        if by_objectnames:
+            data = {}
+            for field in self.fields:
+                data[field.objectName()] = field.text()
+            for slider in self.sliders:
+                data[slider.objectName()] = slider.value()
+            for combobox in self.comboboxes:
+                data[combobox.objectName()] = combobox.currentText()
+            for checkbox in self.checkboxes:
+                data[checkbox.objectName()] = bool(checkbox.checkState())
+        else:
+            data = {'field': [], 'sliders': [], 'combobox': [], 'checkbox': []}
+            for field in self.fields:
+                data['field'].append(field.text())
+            for slider in self.sliders:
+                data['combobox'].append(checkbox.setCheckState(slider.value()))
+            for combobox in self.comboboxes:
+                data['combobox'].append(combobox.currentText())
+            for checkbox in self.checkboxes:
+                data['checkbox'].append(bool(checkbox.checkState()))
+        return data
+
+    def restoreValues(self, values, by_objectnames=False):
+        """Restore the states of your UI elements from getValues"""
+        if by_objectnames:
+            for field in self.fields:
+                if values.get(field.objectName()):
+                    field.setText(values[field.objectName()])
+            for slider in self.sliders:
+                if values.get(slider.objectName()):
+                    slider.setCheckState(values[slider.objectName()])
+            for combobox in self.comboboxes:
+                if values.get(combobox.objectName()):
+                    combobox.setCurrentIndex(combobox.findText(values[combobox.objectName()]))
+            for checkbox in self.checkboxes:
+                if values.get(checkbox.objectName()):
+                    checkbox.setCheckState(QtCore.Qt.Checked if values[checkbox.objectName()] else QtCore.Qt.Unchecked)
+        else:
+            for i, field in enumerate(self.fields):
+                field.setText(values['field'][i])
+            for i, slider in enumerate(self.sliders):
+                slider.setCheckState(values['sliders'][i])
+            for i, combobox in enumerate(self.comboboxes):
+                combobox.setCurrentIndex(values['combobox'][i])
+            for i, checkbox in enumerate(self.checkboxes):
+                checkbox.setCheckState(QtCore.Qt.Checked if values['checkbox'][i] else QtCore.Qt.Unchecked)
 
     def hide(self):
         for widget in self.labels + self.fields + self.textfields + self.sliders + self.comboboxes + self.toolbuttons + self.checkboxes + self.separators + self.buttons:
@@ -267,14 +300,14 @@ class RowLayout(QtWidgets.QHBoxLayout):
             widget.setEnabled(state)
 
 
-def GroupBox(title, items, collapsible=True, collapsed=False):
+def GroupBox(title, items, collapsible=True, collapsed=False, *args, **kwargs):
     """Create a QGroupBox and add all elements in the 'items' argument to it.
     The collapsible argument make the QGroupBox foldable,
     """
     if collapsible:
-        groupbox = CollapsibleGroupBox(title=title, collapsed=collapsed)
+        groupbox = CollapsibleGroupBox(title=title, collapsed=collapsed, *args, **kwargs)
     else:
-        groupbox = QtWidgets.QGroupBox(title=title)
+        groupbox = QtWidgets.QGroupBox(title=title, *args, **kwargs)
     vbox = QtWidgets.QVBoxLayout()
     groupbox.setLayout(vbox)
     for i in items.values():
@@ -287,9 +320,9 @@ class CollapsibleGroupBox(QtWidgets.QGroupBox):
     You can set the speed at which the animation goes by modifying the attribute 'animation_duration'.
     The prefix attribute can be used to add an ASCII icon in front of the title.
     """
-    def __init__(self, title, collapsed=False, prefix={True: '▶  ', False: '▼  '}, parent=None):
+    def __init__(self, title, collapsed=False, prefix={True: '▶  ', False: '▼  '}, *args, **kwargs):
         title = prefix[collapsed] + title
-        super(CollapsibleGroupBox, self).__init__(title, parent)
+        super(CollapsibleGroupBox, self).__init__(title, *args, **kwargs)
         self.setStyleSheet('''
             QGroupBox:flat {{
                 border-left: none;
@@ -339,8 +372,8 @@ class QLoggerHandler(htmlhandler.HtmlStreamHandler):
 class LogPanel(QtWidgets.QDockWidget):
     changed_loglevel = QtCore.Signal(str)
 
-    def __init__(self, parent=None, title=''):
-        super(LogPanel, self).__init__(parent=parent)
+    def __init__(self, *args, **kwargs):
+        super(LogPanel, self).__init__(*args, **kwargs)
         self.setWindowTitle('Logs')
         self.setObjectName('logs')
         self.levels = ['Debug', 'Info', 'Warning', 'Error', 'Critical']
@@ -376,8 +409,8 @@ class LogPanel(QtWidgets.QDockWidget):
 
 class KeySequenceRecorder(QtWidgets.QLineEdit):
     """A LineEdit that show the last key sequence pressed when the field was selected."""
-    def __init__(self, keySequence, parent=None):
-        super(KeySequenceRecorder, self).__init__(parent)
+    def __init__(self, keySequence, *args, **kwargs):
+        super(KeySequenceRecorder, self).__init__(*args, **kwargs)
         self.keymap = {'Esc': ''}
         self.setKeySequence(keySequence)
 
@@ -418,17 +451,17 @@ class SystrayMixin():
     A settings attribute need to be created in the main class for the MessageBox to be displayed only once.
 
 class Tray(SystrayMixin, QtWidgets.QWidget):
-    def __init__(self, mainapp, parent=None):
+    def __init__(self, mainapp, *args, **kwargs):
         icon = QtGui.QIcon('icon.png')
         self.settings = QtCore.QSettings('organisation', 'appname')
-        super(Tray, self).__init__(mainapp, icon, parent=parent)
+        super(Tray, self).__init__(mainapp, icon, *args, **kwargs)
 
 app = QtWidgets.QApplication(sys.argv)
 tray = Tray(app)
 sys.exit(app.exec())
     """
-    def __init__(self, mainapp, icon=None, parent=None):
-        super(SystrayMixin, self).__init__(parent=parent)
+    def __init__(self, mainapp, icon=None, *args, **kwargs):
+        super(SystrayMixin, self).__init__(*args, **kwargs)
         self.mainapp = mainapp
         self.create_tray_icon()
         if icon:
@@ -447,7 +480,7 @@ sys.exit(app.exec())
             self.restore()
 
     def create_tray_icon(self):
-        self.quitAction = QtGui.QAction('&Quit', self, triggered=self.quit)
+        self.quitAction = QAction('&Quit', self, triggered=self.quit)
         self.trayicon_menu = QtWidgets.QMenu(self)
         self.trayicon_menu.addSeparator()
         self.trayicon_menu.addAction(self.quitAction)
@@ -482,19 +515,160 @@ class EditingFinishedMixin():
         self.editingFinished.emit()
 
 
-class LineditSpoiler(QtWidgets.QLineEdit):
-    """A LineEdit that blur its content unless the mouse hover over it."""
-    def __init__(self, blurAmount=10, parent=None):
-        super(LineditSpoiler, self).__init__(parent=parent)
-        self.blurAmount = blurAmount
-        self.effect = QtWidgets.QGraphicsBlurEffect(self)
-        self.effect.setBlurRadius(blurAmount)
-        self.setGraphicsEffect(self.effect)
+class LineditSpoilerMixin():
+    """A Mixin that blur its content unless the mouse hover over it."""
+    def __init__(self, spoilerblur=0, *args, **kwargs):
+        super(LineditSpoilerMixin, self).__init__(*args, **kwargs)
+        self._spoilerblur_effect = QtWidgets.QGraphicsBlurEffect(self)
+        self.setSpoilerBlur(spoilerblur)
+
+    def setSpoilerBlur(self, value):
+        """Set the blur amount, can be set to 0 to disable it"""
+        self._spoilerblur = value
+        self._spoilerblur_effect.setBlurRadius(value)
+        if value:
+            self.setGraphicsEffect(self._spoilerblur_effect)
+        else:
+            self.setGraphicsEffect(0)  # TODO: Check if it works
 
     def enterEvent(self, event):
-        self.effect.setBlurRadius(0)
-        super(LineditSpoiler, self).enterEvent(event)
+        self._spoilerblur_effect.setBlurRadius(0)
+        super(LineditSpoilerMixin, self).enterEvent(event)
 
     def leaveEvent(self, event):
-        self.effect.setBlurRadius(self.blurAmount)
-        super(LineditSpoiler, self).leaveEvent(event)
+        self._spoilerblur_effect.setBlurRadius(self._spoilerblur)
+        super(LineditSpoilerMixin, self).leaveEvent(event)
+
+
+
+class BetterLineEdit(QtWidgets.QLineEdit):
+    valueChanged = QtCore.Signal(str)
+
+    def __init__(self, text='', validator=None, *args, **kwargs):
+        super(BetterLineEdit, self).__init__(str(text), *args, **kwargs)
+        self.validator = validator
+        self._activate_undo = False
+        self._decimals = 2
+        self._singlestep = 1
+        self._minimum = None
+        self._maximum = None
+        self._accelerated = 1
+        self._accelerated_rate = 1
+        self._accelerated_timer = 0
+        self._accelerated_seconds = 3
+        self._return_placeholder = True
+        self.textChanged.connect(self.valueChanged.emit)
+
+    def text(self):
+        text = super(BetterLineEdit, self).text()
+        if text == '' and self._return_placeholder:
+            return self.placeholderText()
+        return text
+
+    def setDecimals(self, value):
+        self._decimals = value
+
+    def setSingleStep(self, value):
+        self._singlestep = value
+
+    def setMinimum(self, value):
+        self._minimum = value
+
+    def setMaximum(self, value):
+        self._maximum = value
+
+    def setAccelerated(self, value):
+        self._accelerated = value
+
+    def wheelEvent(self, event):
+        sign = 1 if event.angleDelta().y() > 0 else -1
+        self._event(event, sign)
+        super(BetterLineEdit, self).wheelEvent(event)
+
+    def keyPressEvent(self, event):
+        if event.key() in [QtCore.Qt.Key_Up, QtCore.Qt.Key_Down]:
+            sign = 1 if event.key()==QtCore.Qt.Key_Up else -1
+            if self._accelerated and self.validator in [QtGui.QIntValidator, QtGui.QDoubleValidator]:
+                if event.isAutoRepeat():
+                    elapsed = time.time() - self._accelerated_timer
+                    power = int(elapsed/self._accelerated_seconds)
+                    print(power)
+                    self._accelerated_rate = pow(10, power)
+                else:
+                    self._accelerated_rate = 1
+                    self._accelerated_timer = time.time()
+            self._event(event, sign)
+        super(BetterLineEdit, self).keyPressEvent(event)
+
+    def _event(self, event, sign):
+        if self.validator in [QtGui.QIntValidator, QtGui.QDoubleValidator]:
+            multiplier = 0.1 if event.modifiers() == Qt.ControlModifier else 10 if event.modifiers() == Qt.ShiftModifier else 1
+
+            try:
+                value = float(self.text()) + sign * self._singlestep * multiplier * self._accelerated_rate
+            except ValueError:
+                value = 0  # If the value is not valid reset it
+
+            if self._minimum is not None:
+                min(value, self._minimum)
+            if self._maximum is not None:
+                max(value, self._maximum)
+            self.setText(value)
+        elif self._activate_undo:
+            if sign > 0:
+                self.undo()
+            else:
+                self.redo()
+        event.accept()
+
+    def setText(self, value):
+        try:
+            if self.validator == QtGui.QIntValidator:
+                    value = str(int(value))
+            elif self.validator == QtGui.QDoubleValidator:
+                value = f'{float(value):.{self._decimals}f}'
+        except ValueError:
+            value = '0'  # If the value is not valid reset it
+        super(BetterLineEdit, self).setText(value)
+
+    def setValue(self, value):
+        self.setText(str(value))
+
+    def value(self):
+        return self.text()
+
+
+class ExclusiveCheckBox(QtWidgets.QCheckBox):
+    _exclusives = collections.defaultdict(set)
+
+    def __init__(self, text='', exclusive_group=None, always_one_active=False, *args, **kwargs):
+        super(ExclusiveCheckBox, self).__init__(text, *args, **kwargs)
+        self._exclusive_group = None
+        self._always_one_active = False
+        if exclusive_group:
+            self.setExclusive(exclusive_group, always_one_active)
+
+    def setExclusive(self, group, always_one_active=False):
+        self.clicked.connect(self.checkExclusive)
+        self._exclusives[group].add(self)
+        self._exclusive_group = group
+        for i in self._exclusives[group]:
+            i._always_one_active = always_one_active
+
+    def removeExclusive(self, group):
+        self._exclusives[group].remove(self)
+        self._exclusive_group = None
+
+    def checkExclusive(self):
+        if not self._exclusive_group:
+            return
+        if not self.isChecked() and not self._always_one_active:
+            return
+        if not self.isChecked() and self._always_one_active:  # always have one checkbox active
+            t = common.Enum(self._exclusives[self._exclusive_group])
+            obj = t.next(current=self)
+            obj.setChecked(True)
+            return
+        for i in self._exclusives[self._exclusive_group]:  # Otherwise uncheck every other ones
+            if i != self:
+                i.setChecked(not self.isChecked())

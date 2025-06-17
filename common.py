@@ -163,15 +163,48 @@ class Enum():
     Usefull for having an incremental "toggle"
     """
     def __init__(self, enum_list):
-        self.enum_list = itertools.cycle(enum_list)
+        self.original = enum_list
+        self.enum_list = itertools.cycle(self.original)
+        for i in self.original:
+            self.current = i
+            break
 
     def next(self, current=None):
-        if current not in self.enum_list:
-            return next(self.enum_list)
+        """Return the next element in the cycle.
+        You can force the current state of the Enum with the 'current' argument."""
+        if current is None:
+            self.current = next(self.enum_list)
+            return self.current
+        if current not in self.original:
+            raise ValueError
         for i in self.enum_list:
-            if i==current:
-                return next(self.enum_list)
+            if i == current:
+                self.current = next(self.enum_list)
+                return self.current
 
+    def append(self, element):
+        self.original.append(element)
+        self.enum_list = itertools.cycle(self.original)
+        self._reset_current()
+
+    def add(self, element):
+        self.original.add(element)
+        self.enum_list = itertools.cycle(self.original)
+        self._reset_current()
+
+    def remove(self, element):
+        self.original.remove(element)
+        self.enum_list = itertools.cycle(self.original)
+        self._reset_current()
+
+    def _reset_current(self):
+        """If you added or removed element to the list, re-set the cycle to the one it was set before"""
+        for i in self.original:  # Loop over the iterable in case it is iterable but not subscriptable
+            if i == self.current:
+                break
+            previous = i
+        while self.enum_list.next() != previous:
+            pass
 
 
 
@@ -227,8 +260,10 @@ def restore_environment(f):
     @functools.wraps(f)
     def func(*args, **kwargs):
         old = os.environ.copy()
-        result = f(*args, **kwargs)
-        os.environ.update(old)
+        try:
+            result = f(*args, **kwargs)
+        finally:
+            os.environ = old
         return result
     return func
 
