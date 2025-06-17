@@ -541,6 +541,8 @@ class LineditSpoilerMixin():
 
 
 class BetterLineEdit(QtWidgets.QLineEdit):
+    valueChanged = QtCore.Signal(str)
+
     def __init__(self, text='', validator=None, *args, **kwargs):
         super(BetterLineEdit, self).__init__(str(text), *args, **kwargs)
         self.validator = validator
@@ -554,6 +556,7 @@ class BetterLineEdit(QtWidgets.QLineEdit):
         self._accelerated_timer = 0
         self._accelerated_seconds = 3
         self._return_placeholder = True
+        self.textChanged.connect(self.valueChanged.emit)
 
     def text(self):
         text = super(BetterLineEdit, self).text()
@@ -627,6 +630,11 @@ class BetterLineEdit(QtWidgets.QLineEdit):
             value = '0'  # If the value is not valid reset it
         super(BetterLineEdit, self).setText(value)
 
+    def setValue(self, value):
+        self.setText(str(value))
+
+    def value(self):
+        return self.text()
 
 
 class ExclusiveCheckBox(QtWidgets.QCheckBox):
