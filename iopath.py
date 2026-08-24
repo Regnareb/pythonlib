@@ -36,7 +36,7 @@ def pathjoin(*args):
 
 
 def get_envvars_from_string(string):
-    regex = '(?<=\$)[A-Z]*'  # Take digits into account?
+    regex = r'(?<=\$)[A-Z]*'  # Take digits into account?
     envvars = re.findall(regex, string)
     return envvars
 
@@ -93,13 +93,13 @@ def unpickle_object(fullPath):
     return frompickle
 
 
-def json_write(data, filePath, default=None):
-    with open(filePath, 'w') as outfile:
+def json_write(data, filepath, default=None):
+    with open(filepath, 'w') as outfile:
         json.dump(data, outfile, default=default)
 
 
-def json_load(filePath):
-    with open(filePath, 'r') as dataFile:
+def json_load(filepath):
+    with open(filepath, 'r') as dataFile:
         return json.load(dataFile)
 
 
@@ -110,8 +110,8 @@ def get_file_sequence(filepath, prefix='', suffix=''):
     """
     # TODO
     folder, filename = os.path.split(filepath)
-    mo = re.findall('\d+', filename)
-    mo = list(re.finditer('\d+', filename))
+    mo = re.findall(r'\d+', filename)
+    mo = list(re.finditer(r'\d+', filename))
     for i in mo[::-1]:
         num = common.tonumber(i.group())
         padding = '{{:0>{}}}'.format(len(i.group()))

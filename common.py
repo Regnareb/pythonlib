@@ -122,7 +122,7 @@ def shorten_string(string, maxlimit, separator='.. '):
 
 
 def increment_string(s):
-    return re.sub('(\d*)$', lambda x: str(int(x.group(0)) + 1), s)
+    return re.sub(r'(\d*)$', lambda x: str(int(x.group(0)) + 1), s)
 
 
 def replace_extension(path, ext):
@@ -143,16 +143,16 @@ def humansize(nbytes):
     return '%s %s' % (f, suffixes[i])
 
 
-def lstrip_all(toStrip, stripper):
-    if toStrip.startswith(stripper):
-        return toStrip[len(stripper):]
-    return toStrip
+def lstrip_all(tostrip, stripper):
+    if tostrip.startswith(stripper):
+        return tostrip[len(stripper):]
+    return tostrip
 
 
-def rstrip_all(toStrip, stripper):
-    if toStrip.endswith(stripper):
-        return toStrip[:-len(stripper)]
-    return toStrip
+def rstrip_all(tostrip, stripper):
+    if tostrip.endswith(stripper):
+        return tostrip[:-len(stripper)]
+    return tostrip
 
 
 

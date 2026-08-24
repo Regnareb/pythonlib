@@ -33,10 +33,10 @@ class HtmlStreamHandler(logging.StreamHandler):
         else:                          return cls.DEFAULT
 
     def format(self, record):
-        regex = "((?:\w):(?:\\\|/)[^\s/$.?#].[^\s]*)"
+        regex = r"((?:\w):(?:\\\|/)[^\s/$.?#].[^\s]*)"
         regex = re.compile(regex, re.MULTILINE)
         text = logging.StreamHandler.format(self, record)
-        text = re.sub(regex, '<a href="file:///\g<1>">\g<1></a>', text)
+        text = re.sub(regex, r'<a href="file:///\g<1>">\g<1></a>', text)
         params = self._get_params(record.levelno)
         return '<span class="{1}" style="color:{color};font-size:{size};{special}">{0}</span>{after}'.format(text, record.levelname.lower(), **params)
 
