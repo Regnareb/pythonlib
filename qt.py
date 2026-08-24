@@ -196,7 +196,7 @@ class RowLayout(QtWidgets.QHBoxLayout):
 
     def connectCheckboxState(self):
         """Disable/Enable all widgets depending of the state of the checkbox"""
-        state = self.checkbox.checkState()
+        state = self.checkbox.isChecked()
         for widget in self.labels + self.fields + self.textfields + self.sliders + self.comboboxes + self.toolbuttons + self.buttons:
             widget.setEnabled(state)
 
@@ -250,7 +250,7 @@ class RowLayout(QtWidgets.QHBoxLayout):
             for field in self.fields:
                 data['field'].append(field.text())
             for slider in self.sliders:
-                data['combobox'].append(checkbox.setCheckState(slider.value()))
+                data['sliders'].append(slider.value())
             for combobox in self.comboboxes:
                 data['combobox'].append(combobox.currentText())
             for checkbox in self.checkboxes:
