@@ -155,6 +155,9 @@ def rstrip_all(tostrip, stripper):
     return tostrip
 
 
+def rreplace(string, old, new, count):
+    """Same as the .replace(count) string method to only replace some occurences from the right"""
+    return string[::-1].replace(old[::-1], new[::-1], count)[::-1]
 
 
 
