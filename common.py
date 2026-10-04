@@ -279,3 +279,32 @@ def decorate_all(decorator):
                 setattr(cls, name, decorator(fn))
         return cls
     return decorate
+
+
+def log_function_details(func):
+    """Log each function call: name, arguments, return value and execution time"""
+    signature = inspect.signature(func)  # computed once, at decoration time
+    name = f"{func.__module__}.{func.__qualname__}"
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if not logger.isEnabledFor(logging.ERROR):
+            return func(*args, **kwargs)
+
+        bound = signature.bind(*args, **kwargs)
+        bound.apply_defaults()
+        args_str = ", ".join(f"{k} = {v!r}" for k, v in bound.arguments.items())
+        logger.error(f"{name} ({args_str})")
+
+        start = time.perf_counter()
+        try:
+            result = func(*args, **kwargs)
+        except Exception as exc:
+            elapsed = time.perf_counter() - start
+            exc_name = type(exc).__qualname__
+            logger.debug(f"{name} raised {exc_name} after {elapsed:.6f}s")
+            raise
+        elapsed = time.perf_counter() - start
+        logger.error(f"{name} returned {result!r} in {elapsed:.6f}s")
+        return result
+    return wrapper
