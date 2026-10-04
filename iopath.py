@@ -103,22 +103,29 @@ def json_load(filepath):
         return json.load(dataFile)
 
 
-def get_file_sequence(filepath, prefix='', suffix=''):
-    """Detect if the filepath is a single file or a sequence
-    If it's a sequence replace the numbers with the prefix/padding number/suffix
-    example: <%3> or $F3
+def get_file_sequence(filepath, prefix='', pattern=None, suffix='', padding=None):
+    """Detect if the filepath is a single file or a sequence.
+    If it's a sequence, replace the frame number with prefix + pattern + suffix.
+    Example: <%3> or $F3
+    Returns (is_sequence, filepath).
     """
-    # TODO
     folder, filename = os.path.split(filepath)
-    mo = re.findall(r'\d+', filename)
-    mo = list(re.finditer(r'\d+', filename))
-    for i in mo[::-1]:
-        num = common.tonumber(i.group())
-        padding = '{{:0>{}}}'.format(len(i.group()))
-        decremented = os.path.join(folder, filename[:i.start()] + padding.format(num - 1) + filename[i.end():])
-        incremented = os.path.join(folder, filename[:i.start()] + padding.format(num + 1) + filename[i.end():])
+    regex = r'\d+' if padding is None else rf'(?<!\d)\d{{{padding}}}(?!\d)'
+    matches = list(re.finditer(regex, filename))
+    for match in reversed(matches):
+        num_str = match.group()
+        num_len = len(num_str)
+        num = int(num_str)
+        head, tail = filename[:match.start()], filename[match.end():]
+
+        # Check adjacent files using original digit padding length
+        decremented = pathjoin(folder, f"{head}{num - 1:0{num_len}d}{tail}")
+        incremented = pathjoin(folder, f"{head}{num + 1:0{num_len}d}{tail}")
+
         if os.path.exists(decremented) or os.path.exists(incremented):
-            filepath = os.path.join(folder, filename[:i.start()] + prefix + str(len(i.group())) + suffix + filename[i.end():]).replace('\\', '/')
+            pattern = str(num_len) if pattern is None else pattern
+            seq_name = f"{head}{prefix}{pattern}{suffix}{tail}"
+            filepath = pathjoin(folder, seq_name)
             return True, filepath
     return False, filepath
 
