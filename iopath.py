@@ -111,23 +111,29 @@ def get_file_sequence(filepath, prefix='', pattern=None, suffix='', padding=None
     """
     folder, filename = os.path.split(filepath)
     regex = r'\d+' if padding is None else rf'(?<!\d)\d{{{padding}}}(?!\d)'
-    matches = list(re.finditer(regex, filename))
-    for match in reversed(matches):
-        num_str = match.group()
-        num_len = len(num_str)
-        num = int(num_str)
+
+    # Prefer the last number in the name (typically the frame number)
+    for match in reversed(list(re.finditer(regex, filename))):
+        num_len = len(match.group())
         head, tail = filename[:match.start()], filename[match.end():]
 
-        # Check adjacent files using original digit padding length
-        decremented = pathjoin(folder, f"{head}{num - 1:0{num_len}d}{tail}")
-        incremented = pathjoin(folder, f"{head}{num + 1:0{num_len}d}{tail}")
+        frames = find_frames(folder, head, tail, num_len)
+        if len(frames) > 1:
+            pat = str(num_len) if pattern is None else pattern
+            seq_name = f"{head}{prefix}{pat}{suffix}{tail}"
+            return True, pathjoin(folder, seq_name), frames
+    return False, filepath, []
 
-        if os.path.exists(decremented) or os.path.exists(incremented):
-            pattern = str(num_len) if pattern is None else pattern
-            seq_name = f"{head}{prefix}{pattern}{suffix}{tail}"
-            filepath = pathjoin(folder, seq_name)
-            return True, filepath
-    return False, filepath
+
+def find_frames(folder, head, tail, num_len):
+    """Return the frame numbers of all files matching head + num_len + tail."""
+    frame_re = re.compile(rf'{re.escape(head)}(\d{{{num_len}}}){re.escape(tail)}')
+    frames = []
+    for name in os.listdir(folder):
+        m = frame_re.fullmatch(name)
+        if m:
+            frames.append(m.group(1))
+    return sorted(frames, key=int)
 
 
 def openfolder(path):
