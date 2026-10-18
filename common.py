@@ -185,6 +185,9 @@ class Enum():
                 self.current = next(self.enum_list)
                 return self.current
 
+    def __iter__(self):
+        return iter(self.original)
+
     def append(self, element):
         self.original.append(element)
         self.enum_list = itertools.cycle(self.original)
